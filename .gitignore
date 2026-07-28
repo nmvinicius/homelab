@@ -1,0 +1,11 @@
+# Local environment files
+.env
+.env.*
+
+# Runtime data
+data/
+tmp/
+
+# Editor / OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,80 @@
+version: "3.9"
+
+services:
+  adguard:
+    image: adguard/adguardhome:latest
+    environment:
+      - TZ=${TZ:-UTC}
+    ports:
+      - target: 53
+        published: 53
+        protocol: tcp
+        mode: host
+      - target: 53
+        published: 53
+        protocol: udp
+        mode: host
+      - target: 67
+        published: 67
+        protocol: udp
+        mode: host
+      - target: 80
+        published: 8080
+        protocol: tcp
+        mode: host
+      - target: 3000
+        published: 3000
+        protocol: tcp
+        mode: host
+    volumes:
+      - adguard_work:/opt/adguardhome/work
+      - adguard_conf:/opt/adguardhome/conf
+    networks:
+      - homelab
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: any
+
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - target: 80
+        published: 80
+        protocol: tcp
+        mode: host
+      - target: 443
+        published: 443
+        protocol: tcp
+        mode: host
+    configs:
+      - source: nginx_default_conf
+        target: /etc/nginx/conf.d/default.conf
+    volumes:
+      - nginx_html:/usr/share/nginx/html:ro
+    networks:
+      - homelab
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: any
+
+configs:
+  nginx_default_conf:
+    file: ../../configs/nginx/default.conf
+
+volumes:
+  adguard_work:
+  adguard_conf:
+  nginx_html:
+
+networks:
+  homelab:
+    driver: overlay
+    attachable: true
