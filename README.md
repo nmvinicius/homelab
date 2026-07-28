@@ -6,7 +6,7 @@ This repository manages a homelab using GitOps practices with Docker Swarm.
 
 - Keep infrastructure as code, versioned in Git.
 - Start with core services: AdGuard Home (DNS/DHCP) and Nginx.
-- Use `.arpa` local domains (for example `adguard.app.arpa`).
+- Use `.arpa` local domains with the pattern `<app>.arpa`, where `app` is a placeholder for the service name.
 - Scale by adding new stacks and configurations over time.
 
 ## Repository Structure
@@ -15,7 +15,7 @@ This repository manages a homelab using GitOps practices with Docker Swarm.
 .
 |-- configs/
 |   `-- nginx/
-|       |-- adguard.app.arpa.conf
+|       |-- apps.wildcard.arpa.conf
 |       `-- default.conf
 |-- scripts/
 |   |-- deploy.sh
@@ -62,20 +62,28 @@ This repository manages a homelab using GitOps practices with Docker Swarm.
 - AdGuard is configured as a single replica and pinned to a manager node by default.
 - DHCP in containers can require network and host-level adjustments depending on your LAN setup.
 - The setup wizard is exposed on `http://<node-ip>:3000`.
-- AdGuard main UI is exposed on `http://<node-ip>:8080` and proxied by Nginx at `http://adguard.app.arpa`.
-- Use local domains under `.arpa` (example zone: `app.arpa`), and avoid `.home`.
+- AdGuard main UI is exposed on `http://<node-ip>:8080` and proxied by Nginx at `http://adguard.arpa`.
+- Use local domains under `.arpa` (pattern: `<app>.arpa`), and avoid `.home`.
 - Add future stacks under `stacks/<name>/docker-stack.yml` and deploy with the same script.
 
 ## Local Domain Pattern
 
 Recommended pattern:
 
-- `adguard.app.arpa`
-- `nginx.app.arpa`
-- `portainer.app.arpa`
+- `<app>.arpa`
+
+`app` is a variable, not a fixed middle label. That means the expected hostnames are `adguard.arpa`, `portainer.arpa`, and `grafana.arpa` instead of `adguard.app.arpa`.
+
+Examples:
+
+- `adguard.arpa`
+- `portainer.arpa`
+- `grafana.arpa`
 
 Inside AdGuard DNS, create `A` records for these names pointing to the Swarm manager IP.
 
+Nginx wildcard routing uses the left-most label as the upstream service name.
+For example, `adguard.arpa` proxies to service `adguard` on port `80`.
 ## DHCP Migration Plan (Gradual)
 
 1. Keep DHCP on the router for now and use AdGuard only as DNS.
