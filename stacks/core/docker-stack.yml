@@ -7,7 +7,7 @@ services:
       - TZ=${TZ:-UTC}
     volumes:
       - adguard_work:/opt/adguardhome/work
-      - adguard_conf:/opt/adguardhome/conf
+      - ../../configs/adguard:/opt/adguardhome/conf
     networks:
       - hostnet
     deploy:
@@ -54,14 +54,12 @@ configs:
 
 volumes:
   adguard_work:
-  adguard_conf:
   nginx_html:
 
 networks:
   homelab:
     driver: overlay
     attachable: true
-  # Adicione a rede host externa[cite: 2]
   hostnet:
     external: true
     name: host
