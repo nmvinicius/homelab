@@ -1,5 +1,5 @@
 http:
-  address: 0.0.0.0:8080 # Define a porta da Web UI como 8080 nativamente no Git!
+  address: 0.0.0.0:8080
   session_ttl: 720h
 
 dns:
@@ -12,13 +12,15 @@ dns:
 
 dhcp:
   enabled: true
-  interface_name: end0 # Já vem pré-configurado para a interface end0 do Armbian
+  interface_name: end0
   dhcpv4:
+    enabled: true
     gateway_ip: 192.168.1.1
     subnet_mask: 255.255.255.0
     range_start: 192.168.1.50
     range_end: 192.168.1.200
     lease_duration: 86400
   dhcpv6:
-    range_start: ""
+    enabled: true
+    range_start: "2804:214:8023:6a4::100"
     lease_duration: 86400
