@@ -36,6 +36,7 @@ services:
         target: /etc/nginx/conf.d/apps.wildcard.arpa.conf
     volumes:
       - nginx_html:/usr/share/nginx/html:ro
+      - ../../certs:/etc/nginx/certs:ro
     networks:
       - homelab
     deploy:

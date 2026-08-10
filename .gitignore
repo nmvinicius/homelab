@@ -8,6 +8,9 @@
 data/
 tmp/
 
+# TLS certificates and keys (gerados localmente via generate-certs.sh)
+certs/
+
 # Editor / OS
 .DS_Store
 Thumbs.db

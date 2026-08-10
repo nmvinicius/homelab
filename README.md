@@ -7,18 +7,26 @@ This repository manages a homelab using GitOps practices with Docker Swarm.
 - Keep infrastructure as code, versioned in Git.
 - Start with core services: AdGuard Home (DNS/DHCP) and Nginx.
 - Use `.arpa` local domains with the pattern `<app>.arpa`, where `app` is a placeholder for the service name.
+- **HTTPS em todos os serviços** via CA interna e certificado wildcard `*.arpa`.
 - Scale by adding new stacks and configurations over time.
 
 ## Repository Structure
 
 ```
 .
+|-- certs/                   # Certificados TLS (não versionado — gerado localmente)
+|   |-- ca/                  #   Root CA (distribuir ca.crt para dispositivos)
+|   |-- wildcard.arpa.*      #   Certificado wildcard *.arpa
+|   `-- dhparam.pem          #   Parâmetros DH para Forward Secrecy
 |-- configs/
+|   |-- adguard/
+|   |   `-- AdGuardHome.yaml
 |   `-- nginx/
 |       |-- apps.wildcard.arpa.conf
 |       `-- default.conf
 |-- scripts/
 |   |-- deploy.sh
+|   |-- generate-certs.sh    # Gerar CA interna + wildcard *.arpa
 |   `-- remove.sh
 `-- stacks/
     `-- core/
@@ -30,41 +38,161 @@ This repository manages a homelab using GitOps practices with Docker Swarm.
 
 - Docker Engine in Swarm mode (`docker swarm init` on the manager)
 - A manager node where the stack can run
+- OpenSSL (para gerar certificados)
 
 ## Quick Start
 
-1. Copy environment template if needed:
+1. Copiar template de ambiente se necessário:
 
    ```bash
    cp stacks/core/.env.example stacks/core/.env
    ```
 
-2. Deploy the core stack:
+2. **Gerar certificados TLS** (CA interna + wildcard `*.arpa`):
+
+   ```bash
+   ./scripts/generate-certs.sh
+   ```
+
+3. Distribuir o certificado da CA para os dispositivos da rede (veja [Internal CA & TLS](#internal-ca--tls)).
+
+4. Subir o stack:
 
    ```bash
    ./scripts/deploy.sh core
    ```
 
-3. Check services:
+5. Verificar serviços:
 
    ```bash
    docker stack services core
    ```
 
-4. Remove the stack:
+6. Acessar: `https://adguard.arpa`
+
+7. Remover o stack:
 
    ```bash
    ./scripts/remove.sh core
    ```
 
+## Internal CA & TLS
+
+O homelab opera com uma **CA (Certificate Authority) interna** que assina um certificado wildcard `*.arpa`. Isso elimina avisos de "inseguro" em todos os navegadores, desde que o certificado da CA esteja instalado no dispositivo.
+
+### Arquitetura
+
+```mermaid
+graph TD
+    subgraph "Rede Local"
+        D1[Notebook]
+        D2[Desktop]
+        D3[Smartphone]
+    end
+
+    D1 & D2 & D3 -->|"HTTPS *.arpa"| NGINX
+
+    subgraph "Docker Swarm — Manager Node"
+        NGINX[Nginx :443<br/>TLS Termination<br/>HTTP/2]
+
+        subgraph "Serviços"
+            AG[AdGuard Home<br/>:8080]
+            APP1[Portainer<br/>:80]
+            APP2[Grafana<br/>:80]
+            APPn[...]
+        end
+
+        NGINX -->|"adguard.arpa → host:8080"| AG
+        NGINX -->|"portainer.arpa → overlay:80"| APP1
+        NGINX -->|"grafana.arpa → overlay:80"| APP2
+        NGINX -->|"*.arpa → overlay:80"| APPn
+    end
+
+    CA[Root CA<br/>Homelab Internal CA] -.->|"Assina wildcard<br/>*.arpa + arpa"| NGINX
+```
+
+### Fluxo de uma requisição
+
+```mermaid
+sequenceDiagram
+    participant Browser as 🌐 Navegador
+    participant DNS as 📡 AdGuard DNS
+    participant Nginx as 🔒 Nginx :443
+    participant App as 📦 App Container
+
+    Browser->>DNS: Resolver adguard.arpa
+    DNS-->>Browser: 192.168.1.113
+    Browser->>Nginx: TLS Handshake (SNI: adguard.arpa)
+    Nginx-->>Browser: Cert wildcard *.arpa
+    Browser->>Browser: ✅ Valida contra CA interna
+    Browser->>Nginx: GET / (HTTPS)
+    Nginx->>App: proxy_pass http://adguard:80
+    App-->>Nginx: 200 OK
+    Nginx-->>Browser: 200 OK (HTTPS)
+```
+
+### Gerar certificados
+
+```bash
+./scripts/generate-certs.sh
+```
+
+Isso cria:
+
+| Arquivo | Propósito |
+|---------|-----------|
+| `certs/ca/ca.crt` | Certificado da CA — **instalar nos dispositivos** |
+| `certs/ca/ca.key` | Chave privada da CA — **manter em segredo** |
+| `certs/wildcard.arpa.crt` | Certificado wildcard assinado |
+| `certs/wildcard.arpa.key` | Chave privada do wildcard |
+| `certs/wildcard.arpa.fullchain.pem` | Cadeia completa (cert + CA) para Nginx |
+| `certs/dhparam.pem` | Parâmetros Diffie-Hellman para Forward Secrecy |
+
+### Instalar o CA cert nos dispositivos
+
+**Linux (sistema):**
+```bash
+sudo cp certs/ca/ca.crt /usr/local/share/ca-certificates/homelab-ca.crt
+sudo update-ca-certificates
+```
+
+**Linux (Firefox — trust store próprio):**
+Preferences → Privacy & Security → View Certificates → Authorities → Import
+
+**Windows:**
+Duplo clique em `ca.crt` → Instalar → Trusted Root Certification Authorities
+
+**macOS:**
+Duplo clique em `ca.crt` → Keychain → System → Always Trust
+
+**Android:**
+Settings → Security → Encryption & Credentials → Install from storage
+
+**iOS:**
+Abrir `ca.crt` no Safari → Profile Downloaded → Settings → Install
+
+### Renovar certificados
+
+Os certificados wildcard expiram em 5 anos. Para renovar, basta rodar novamente:
+
+```bash
+./scripts/generate-certs.sh   # sobrescreve os certs antigos
+./scripts/deploy.sh core      # recarrega o Nginx com os novos certs
+```
+
+> ⚠️ O diretório `certs/` contém chaves privadas e **não deve ser versionado** no Git.
+> O `.gitignore` já o exclui.
+
 ## Notes
 
 - AdGuard is configured as a single replica and pinned to a manager node by default.
 - DHCP in containers can require network and host-level adjustments depending on your LAN setup.
-- The setup wizard is exposed on `http://<node-ip>:3000`.
-- AdGuard main UI is exposed on `http://<node-ip>:8080` and proxied by Nginx at `http://adguard.arpa`.
+- The setup wizard is exposed on `https://<node-ip>:3000`.
+- AdGuard main UI is exposed on `https://<node-ip>:8080` and proxied by Nginx at `https://adguard.arpa`.
 - Use local domains under `.arpa` (pattern: `<app>.arpa`), and avoid `.home`.
 - Add future stacks under `stacks/<name>/docker-stack.yml` and deploy with the same script.
+- O Nginx faz redirect automático HTTP → HTTPS em todos os domínios `*.arpa`.
+- OCSP Stapling está desabilitado (CA interna não tem responder OCSP público).
 
 ## Local Domain Pattern
 
