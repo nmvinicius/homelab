@@ -27,6 +27,7 @@ This repository manages a homelab using GitOps practices with Docker Swarm.
 |-- scripts/
 |   |-- deploy.sh
 |   |-- generate-certs.sh    # Gerar CA interna + wildcard *.arpa
+|   |-- update.sh            # Atualizar imagens e reimplantar stacks
 |   `-- remove.sh
 `-- stacks/
     `-- core/
@@ -182,6 +183,28 @@ Os certificados wildcard expiram em 5 anos. Para renovar, basta rodar novamente:
 
 > ⚠️ O diretório `certs/` contém chaves privadas e **não deve ser versionado** no Git.
 > O `.gitignore` já o exclui.
+
+## Atualizar imagens e serviços
+
+Os serviços usam **tags flutuantes** (`latest`, `alpine`, etc.) para que possam ser
+atualizados de forma simples. Para atualizar todas as imagens e reimplantar os stacks:
+
+```bash
+./scripts/update.sh          # todos os stacks em stacks/
+./scripts/update.sh core     # apenas o stack "core"
+```
+
+O script faz, para cada stack:
+
+1. `docker pull` das imagens definidas no `docker-stack.yml`;
+2. reimplanta o stack via `./scripts/deploy.sh <stack>`.
+
+Como o `docker stack deploy` resolve as tags a cada execução
+(`--resolve-image always`), os serviços são recriados com a imagem mais recente.
+
+> Para fixar uma versão específica, troque a tag no `docker-stack.yml`
+> (ex.: `nginx:alpine` → `nginx:1.30.5-alpine`). O script continuará funcionando,
+> mas só atualizará quando a tag apontada mudar.
 
 ## Notes
 

@@ -24,7 +24,7 @@ services:
         condition: any
 
   nginx:
-    image: nginx:1.27-alpine
+    image: nginx:alpine
     ports:
       - target: 80
         published: 80
