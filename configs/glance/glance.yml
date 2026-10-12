@@ -1,0 +1,41 @@
+server:
+  proxied: true
+
+branding:
+  app-name: Homelab
+
+pages:
+  - name: Home
+    columns:
+      - size: small
+        widgets:
+          - type: clock
+            hour-format: 24h
+          - type: calendar
+            first-day-of-week: monday
+      - size: full
+        widgets:
+          - type: search
+            autofocus: true
+          - type: custom-api
+            title: Clima
+            cache: 30m
+            url: https://api.openweathermap.org/data/2.5/weather?lat=-23.5427842&lon=-46.3108391&appid=${OPENWATERMAP_APIKEY}&units=metric&lang=pt_br
+            template: |
+              {{ if eq .Response.StatusCode 200 }}
+              <div class="flex items-center gap-10">
+                <span class="size-h1 color-highlight">{{ printf "%.1f" (.JSON.Float "main.temp") }} °C</span>
+                <img src="https://openweathermap.org/img/wn/{{ .JSON.String "weather.0.icon" }}@2x.png" alt="{{ .JSON.String "weather.0.description" }}" width="56" height="56">
+              </div>
+              <p class="size-h4">{{ .JSON.String "name" }} · {{ .JSON.String "weather.0.description" }}</p>
+              <p class="size-h6 color-paragraph">Sensação {{ printf "%.1f" (.JSON.Float "main.feels_like") }} °C · Umidade {{ .JSON.Int "main.humidity" }}%</p>
+              {{ else }}
+              <p>OpenWeatherMap indisponível (HTTP {{ .Response.StatusCode }})</p>
+              {{ end }}
+          - type: bookmarks
+            groups:
+              - title: Rede local
+                links:
+                  - title: AdGuard Home
+                    url: https://adguard.arpa
+                    icon: mdi:shield-check

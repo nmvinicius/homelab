@@ -46,18 +46,12 @@ services:
           - node.role == manager
       restart_policy:
         condition: any
-  homepage:
-    image: ghcr.io/gethomepage/homepage:latest
-    volumes:
-      - ./configs/homepage:/app/config
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    deploy:
-      replicas: 0
-      resources:
-        limits:
-          memory: 128M
+  glance:
+    image: glanceapp/glance:latest
     environment:
-      HOMEPAGE_ALLOWED_HOSTS: home.arpa
+      OPENWATERMAP_APIKEY: ${OPENWATERMAP_APIKEY:?OPENWATERMAP_APIKEY is required in stacks/core/.env}
+    volumes:
+      - ../../configs/glance:/app/config:ro
     networks:
       - homelab
 
