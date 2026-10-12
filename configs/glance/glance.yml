@@ -57,9 +57,11 @@ pages:
               - title: AdGuard Home
                 url: https://adguard.arpa
                 icon: mdi:shield-check
+                allow-insecure: true
               - title: Roteador
                 url: http://192.168.1.1
                 icon: mdi:router-network
+                allow-insecure: true
               - title: Internet
                 url: https://1.1.1.1
                 icon: mdi:earth
@@ -67,7 +69,8 @@ pages:
           - type: custom-api
             title: Hardware
             cache: 15s
-            url: http://192.168.1.50:61208/api/3/all
+            url: https://glances.arpa/api/4/all
+            allow-insecure: true
             template: |
               <div class="flex items-center justify-between">
                 <span>CPU</span>
