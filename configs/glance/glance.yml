@@ -11,12 +11,29 @@ pages:
         widgets:
           - type: clock
             hour-format: 24h
+          
           - type: calendar
             first-day-of-week: monday
+
+          - type: rss
+            title: Atualizações
+            limit: 5
+            collapse-after: 3
+            feeds:
+              - url: https://news.ycombinator.com/rss
+                title: Hacker News
+              - url: https://www.reddit.com/r/selfhosted/.rss
+                title: r/selfhosted
+              - url: https://www.reddit.com/r/homelab/.rss
+                title: r/homelab
+              - url: https://www.phoronix.com/rss.php
+                title: Phoronix
+
       - size: full
         widgets:
           - type: search
             autofocus: true
+          
           - type: custom-api
             title: Clima
             cache: 30m
@@ -32,10 +49,46 @@ pages:
               {{ else }}
               <p>OpenWeatherMap indisponível (HTTP {{ .Response.StatusCode }})</p>
               {{ end }}
+
+          - type: monitor
+            title: Estado do Sistema
+            cache: 1m
+            sites:
+              - title: AdGuard Home
+                url: https://adguard.arpa
+                icon: mdi:shield-check
+              - title: Roteador
+                url: http://192.168.1.1
+                icon: mdi:router-network
+              - title: Internet
+                url: https://1.1.1.1
+                icon: mdi:earth
+
+          - type: custom-api
+            title: Hardware
+            cache: 15s
+            url: http://192.168.1.50:61208/api/3/all
+            template: |
+              <div class="flex items-center justify-between">
+                <span>CPU</span>
+                <strong>{{ printf "%.0f" (.JSON.Float "cpu.total") }}%</strong>
+              </div>
+              <div class="flex items-center justify-between">
+                <span>RAM</span>
+                <strong>{{ printf "%.0f" (.JSON.Float "mem.percent") }}%</strong>
+              </div>
+              <div class="flex items-center justify-between">
+                <span>Load</span>
+                <strong>{{ printf "%.2f" (.JSON.Float "load.min1") }}</strong>
+              </div>
+
           - type: bookmarks
             groups:
-              - title: Rede local
+              - title: Infraestrutura & Rede
                 links:
                   - title: AdGuard Home
                     url: https://adguard.arpa
                     icon: mdi:shield-check
+                  - title: Glances
+                    url: https://glances.arpa
+                    icon: mdi:cpu-64-bit
