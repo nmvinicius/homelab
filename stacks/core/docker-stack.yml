@@ -52,6 +52,7 @@ services:
       - ./configs/homepage:/app/config
       - /var/run/docker.sock:/var/run/docker.sock:ro
     deploy:
+      replicas: 0
       resources:
         limits:
           memory: 128M
@@ -62,8 +63,10 @@ services:
 
 configs:
   nginx_default_conf:
+    name: ${STACK_NAME}_nginx_default_conf_${NGINX_DEFAULT_CONF_HASH}
     file: ../../configs/nginx/default.conf
   nginx_apps_wildcard_conf:
+    name: ${STACK_NAME}_nginx_apps_wildcard_conf_${NGINX_APPS_WILDCARD_CONF_HASH}
     file: ../../configs/nginx/apps.wildcard.arpa.conf
 
 volumes:
