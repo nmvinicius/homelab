@@ -46,6 +46,19 @@ services:
           - node.role == manager
       restart_policy:
         condition: any
+  homepage:
+    image: ghcr.io/gethomepage/homepage:latest
+    volumes:
+      - ./configs/homepage:/app/config
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    environment:
+      HOMEPAGE_ALLOWED_HOSTS: home.arpa
+    networks:
+      - homelab
 
 configs:
   nginx_default_conf:
